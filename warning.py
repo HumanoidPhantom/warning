@@ -1,6 +1,7 @@
 import sys
 import server
 import client
+import socket
 
 TYPE = 'client'
 MAX_CONNECTIONS_NUMBER = 10
@@ -11,7 +12,13 @@ RECV_MSG_LEN = 4
 def get_additional_info(port_not_null=False):
 
     while True:
-        host = input("Host/IP-address (print [back] to change type): ")
+        message = "Host/IP-address ("
+        if not port_not_null:
+            curr_ip = socket.gethostbyname(socket.gethostname())
+            message += "your current IP-address [" + curr_ip + "]"
+        message += "print [back] to change type): "
+
+        host = input(message)
         if host == 'back':
             return -1, -1
         elif len(host) == 0:
