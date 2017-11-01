@@ -3,16 +3,14 @@ import server
 import client
 
 TYPE = 'client'
-PORT = 25999
 MAX_CONNECTIONS_NUMBER = 10
 RECV_BUFFER = 4048
 RECV_MSG_LEN = 4
 
 
-def get_additional_info(set_port=False):
+def get_additional_info(port_not_null=False):
 
     while True:
-        port = -1
         host = input("Host/IP-address (print [back] to change type): ")
         if host == 'back':
             return -1, -1
@@ -20,20 +18,19 @@ def get_additional_info(set_port=False):
             print('Too short answer, try again')
             continue
 
-        if set_port:
-            while True:
-                port = input("Port (print [back] to change host): ")
-                if port == 'back':
-                    host = -1
-                    break
-                elif len(port) == 0:
-                    print('Too short answer. Try again')
-                    continue
-                elif not port.isdigit() or int(port) < 1 or int(port) > 65535:
-                    print('\nWrong value')
-                    continue
-                else:
-                    break
+        while True:
+            port = input("Port (print [back] to change host): ")
+            if port == 'back':
+                host = -1
+                break
+            elif len(port) == 0:
+                print('Too short answer. Try again')
+                continue
+            elif not port.isdigit() or int(port) < 0 or int(port) > 65535 or (port_not_null and port == 0):
+                print('\nWrong value')
+                continue
+            else:
+                break
 
         if host == -1:
             continue
@@ -52,7 +49,7 @@ def main():
             if host == -1:
                 continue
 
-            chat_server = server.ChatServer(host, PORT, MAX_CONNECTIONS_NUMBER, RECV_BUFFER, RECV_MSG_LEN)
+            chat_server = server.ChatServer(host, port, MAX_CONNECTIONS_NUMBER, RECV_BUFFER, RECV_MSG_LEN)
             chat_server.start()
             break
         elif serv_type == 'client':
