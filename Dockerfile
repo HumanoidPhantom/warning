@@ -1,10 +1,10 @@
-FROM python:3-slim
+FROM python:3
 
 WORKDIR /warning
 
 ADD . /warning
 
-#RUN pip install -r requirements.txt
+RUN pip install -r requirements.txt
 
 #EXPOSE 9090
 

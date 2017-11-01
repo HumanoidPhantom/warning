@@ -6,15 +6,22 @@ import os
 import subprocess
 import tempfile
 import sys
+import hashlib
+import string
+import getch
 
 LOGFILE = None
 
 COMMANDS = [
-    'answer',
-    'history',
+    'mesg',
     'quit',
-    'list'
+    'list',
+    'auth'
+    'auok',
+    'auer'
 ]
+
+DEF_MESSAGE = '[m - send message, s - stickers, q - quit]'
 
 
 class ChatClient(threading.Thread):
@@ -41,44 +48,45 @@ class ChatClient(threading.Thread):
 
         self.connections = [sys.stdin, self.client_socket]
 
+        print('Connected to chat.')
+
+    def authorize(self):
+        u_allowed_chars = 'A-Za-z0-9'+string.punctuation
+
+        login = self.data_checker('Login (allowed: [' + u_allowed_chars + '], [exit] to leave): ', 1)
+        passwd = self.data_checker('Password (at least 5 chars, allowed: [' + u_allowed_chars + '] [exit] to leave): ', 5)
+
+        hpasswd = hashlib.sha256(passwd.encode()).hexdigest()
+
+        header = "auth"
+        self._send(self.client_socket, header + login + " " + hpasswd)
+
+    def data_checker(self, msg, min_len):
+        allowed_chars = string.ascii_letters + string.digits + string.punctuation
+        while True:
+            inp_data = input(msg)
+
+            if inp_data == 'exit':
+                self.stop()
+            elif len(inp_data) < min_len:
+                print('Too short answer. Try again.')
+                continue
+
+            good_pass = True
+            for ch in inp_data:
+                if ch not in allowed_chars:
+                    print('Restricted symbols were used')
+                    good_pass = False
+                    break
+
+            if not good_pass:
+                continue
+
+            return inp_data
+
     def _send(self, sock, msg):
         msg = struct.pack('>I', len(msg)) + msg.encode()
-        print(msg)
         sock.send(msg)
-
-    def _receive(self, sock):
-        data = None
-
-        msg_len = sock.recv(self.recv_msg_len)
-
-        if len(msg_len) == 4:
-            data = ''
-            msg_len = struct.unpack('>I', msg_len)[0]
-            tot_data_len = 0
-
-            while tot_data_len < msg_len:
-                chunk = sock.recv(self.recv_buffer)
-                if not chunk:
-                    data = None
-                    break
-                else:
-                    data += str(chunk.decode())
-                    tot_data_len += len(chunk)
-
-        return data
-
-    def _broadcast(self, sock, msg):
-
-        for connection in self.connections:
-            not_server = connection != self.client_socket
-            not_msg_author = connection != sock
-
-            if not_msg_author and not_server:
-                try:
-                    self._send(connection, msg)
-                except socket.error:
-                    connection.close()
-                    self.connections.remove(connection)
 
     def _run(self):
         while self.running:
@@ -91,11 +99,14 @@ class ChatClient(threading.Thread):
                     if sock == self.client_socket:
                         self.receive(sock)
                     else:
+                        # symb = getch.getch()
                         msg = sys.stdin.readline()
                         msg = struct.pack('>I', len(msg)) + msg.encode()
+                        sys.stdout.flush()
 
-                        sock.send(msg)
-                        sys.stdout.write('[Me] ')
+                        #self.client_socket.send(msg)
+                        print(msg)
+                        sys.stdout.write(DEF_MESSAGE)
                         sys.stdout.flush()
                         # try:
                         #     data = self._receive(sock)
@@ -112,13 +123,16 @@ class ChatClient(threading.Thread):
 
     def run(self):
         self._socket_init()
+        self.authorize()
         self._run()
 
     def stop(self):
+        print('Disconnected from chat server')
         self.running = False
         self.client_socket.close()
+        sys.exit()
 
-    def open_vim(self):
+    def open_editor(self):
 
         initial_message = ""
 
@@ -144,6 +158,7 @@ class ChatClient(threading.Thread):
             msg_len = struct.unpack('>I', msg_len)[0]
             tot_data_len = 0
 
+            command = sock.recv(4).decode()
             while tot_data_len < msg_len:
                 chunk = req_sock.recv(self.recv_buffer)
                 if not chunk:
@@ -154,8 +169,42 @@ class ChatClient(threading.Thread):
                     tot_data_len += len(chunk)
 
             sys.stdout.write(res_data)
-            sys.stdout.write('[Me] ')
+            sys.stdout.write(DEF_MESSAGE)
             sys.stdout.flush()
         else:
-            print('\nDisconnected from chat server')
-            sys.exit()
+            self.stop()
+
+    def _receive(self, sock):
+        res_data = ('', '', '')
+
+        msg_len = sock.recv(self.recv_msg_len)
+
+        if len(msg_len) == 4:
+            msg_len = struct.unpack('>I', msg_len)[0]
+            tot_data_len = 0
+
+            command = sock.recv(4).decode()
+            if command in COMMANDS:
+                data = self.receive_message(sock, msg_len - 4, tot_data_len + 4)
+                if command == 'auth':
+                    res_data = self.auth_client(sock, data)
+                else:
+                    res_data = (data, '', data)
+            else:
+                res_data = ('', 'erro' + 'Something went wrong. Try again\n', '')
+
+        return res_data
+
+    def receive_message(self, sock, msg_len, tot_data_len):
+        data = ''
+
+        while tot_data_len < msg_len:
+            chunk = sock.recv(self.recv_buffer)
+            if not chunk:
+                data = None
+                break
+            else:
+                data += str(chunk.decode())
+                tot_data_len += len(chunk)
+
+        return data
