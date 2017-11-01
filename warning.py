@@ -4,7 +4,6 @@ import client
 
 TYPE = 'client'
 PORT = 25999
-HOST = "127.0.0.1"
 MAX_CONNECTIONS_NUMBER = 10
 RECV_BUFFER = 4048
 RECV_MSG_LEN = 4
@@ -53,7 +52,7 @@ def main():
             if host == -1:
                 continue
 
-            chat_server = server.ChatServer(host, port, MAX_CONNECTIONS_NUMBER, RECV_BUFFER, RECV_MSG_LEN)
+            chat_server = server.ChatServer(host, PORT, MAX_CONNECTIONS_NUMBER, RECV_BUFFER, RECV_MSG_LEN)
             chat_server.start()
             break
         elif serv_type == 'client':
