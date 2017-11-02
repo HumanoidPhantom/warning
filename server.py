@@ -175,7 +175,6 @@ class ChatServer(threading.Thread):
                     self.remove_client(connection)
 
     def remove_client(self, connection):
-        print(connection in self.clients, connection in self.clients_active)
         if connection in self.clients:
             self.clients.remove(connection)
 
