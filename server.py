@@ -79,7 +79,7 @@ class ChatServer(threading.Thread):
                     res_data = self.auth_client(sock, data)
                 elif command == 'quit':
                     self.remove_client(sock)
-                    res_data = ('User ' + data + ' left us\n', '', 'User ' + data + ' left us\n')
+                    res_data = ('mesg' + 'User ' + data + ' left us\n', '', 'User ' + data + ' left us\n')
                 elif command == 'stck':
                     res_data = self.sticker(sock, data)
                 else:
