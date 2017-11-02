@@ -27,6 +27,7 @@ DEF_MESSAGE = '[m - send message, s - stickers, q - quit]\n'
 user_login = ''
 curr_socket = None
 running = True
+exit_message = 'Disconnected from chat server'
 
 
 def send(sock, msg):
@@ -51,7 +52,7 @@ def exit_handler():
             pass
     global running
     running = False
-    print('Disconnected from chat server')
+    print(exit_message)
 
 
 atexit.register(exit_handler)
@@ -79,7 +80,8 @@ class ChatClient(threading.Thread):
         try:
             self.client_socket.connect((self.host, self.port))
         except socket.error:
-            print("Unable to connect, sorry")
+            global exit_message
+            exit_message = "Unable to connect, sorry"
             sys.exit()
 
         self.connections = [sys.stdin, self.client_socket]
