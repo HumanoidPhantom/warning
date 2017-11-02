@@ -68,7 +68,6 @@ class ChatClient(threading.Thread):
         self.max_connections_number = max_connections
         self.recv_buffer = recv_buffer
         self.recv_msg_len = recv_msg_len
-        self.login = ''
         self.stickers_text = ''
         self.sticker_list = {}
 
@@ -139,7 +138,7 @@ class ChatClient(threading.Thread):
                         sys.stdout.flush()
                         command = command[-2:-1]
                         if command == 'q':
-                            send(self.client_socket, 'quit'+self.login)
+                            send(self.client_socket, 'quit'+user_login)
                             stop()
                         elif command == 'm':
                             msg = self.open_editor()
