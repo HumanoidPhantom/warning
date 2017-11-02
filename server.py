@@ -18,7 +18,6 @@ LIST_MESSAGE = '[back] - return to server logs. [remove ip port] - disconnect us
 COMMANDS = [
     'mesg',
     'quit',
-    'list',
     'auth',
     'auok',
     'auer',

@@ -15,7 +15,6 @@ LOGFILE = None
 COMMANDS = [
     'mesg',
     'quit',
-    'list',
     'auth',
     'auok',
     'auer',
