@@ -3,6 +3,8 @@ import server
 import client
 import socket
 
+# P2P version of the chat
+
 TYPE = 'client'
 MAX_CONNECTIONS_NUMBER = 10
 RECV_BUFFER = 4048
