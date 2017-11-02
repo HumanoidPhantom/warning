@@ -41,8 +41,6 @@ def get_additional_info(port_not_null=False):
 
 def main():
 
-
-
     while True:
         serv_type = input("Service to run: server/client ([exit] to leave): ")
 
