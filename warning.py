@@ -10,8 +10,7 @@ MAX_CONNECTIONS_NUMBER = 10
 RECV_BUFFER = 4048
 RECV_MSG_LEN = 4
 
-
-def get_additional_info(port_not_null=False):
+def get_avail_ips():
     addr_text = ''
     for iface_name in interfaces():
 
@@ -27,6 +26,12 @@ def get_additional_info(port_not_null=False):
 
     if addr_text != '':
         addr_text = 'your ' + addr_text
+
+    return addr_text
+
+def get_additional_info(port_not_null=False):
+
+    addr_text = get_avail_ips()
 
     while True:
 
@@ -59,28 +64,9 @@ def get_additional_info(port_not_null=False):
 
 def main():
 
-    while True:
-        serv_type = input("Service to run: server/client ([exit] to leave): ")
-
-        if serv_type == 'server':
-
-            host, port = get_additional_info()
-            if host == -1:
-                continue
-
-            chat_server = server.ChatServer(host, port, MAX_CONNECTIONS_NUMBER, RECV_BUFFER, RECV_MSG_LEN)
-            chat_server.start()
-            break
-        elif serv_type == 'client':
-            host, port = get_additional_info(True)
-            chat_client = client.ChatClient(host, port, MAX_CONNECTIONS_NUMBER, RECV_BUFFER, RECV_MSG_LEN)
-            chat_client.start()
-            break
-        elif serv_type == 'exit':
-            print('Bye-bye!')
-            sys.exit()
-        else:
-            print('Wrong value')
+    host, port = get_additional_info()
+    chat_server = server.ChatServer(host, port, MAX_CONNECTIONS_NUMBER, RECV_BUFFER, RECV_MSG_LEN)
+    chat_server.start()
 
 
 if __name__ == '__main__':
