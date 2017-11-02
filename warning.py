@@ -11,7 +11,7 @@ RECV_BUFFER = 4048
 RECV_MSG_LEN = 4
 
 
-def get_additional_info(port_not_null=False):
+def get_avail_ips():
     addr_text = ''
     for iface_name in interfaces():
 
@@ -27,6 +27,12 @@ def get_additional_info(port_not_null=False):
 
     if addr_text != '':
         addr_text = 'your ' + addr_text
+
+    return addr_text
+
+
+def get_additional_info(port_not_null=False):
+    addr_text = get_avail_ips()
 
     while True:
 
