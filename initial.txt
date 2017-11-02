@@ -1,11 +1,6 @@
-### Lines, starting with [###] won't be sent
-### Some help here
-### Stickers you could use:
-### :sne:
-###   _________ _______  ___________
-### /   _____/ \      \ \_   _____/
-### \_____  \  /   |   \ |    __)_
-### /        \/    |    \|        \
-###/_______  /\____|__  /_______  /
-###        \/         \/        \/
 
+
+
+### Lines, starting with [###] won't be sent
+### Type :q! to exit
+### Type :x to send message

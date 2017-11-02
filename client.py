@@ -18,7 +18,8 @@ COMMANDS = [
     'list',
     'auth',
     'auok',
-    'auer'
+    'auer',
+    'stck'
 ]
 
 DEF_MESSAGE = '[m - send message, s - stickers, q - quit]\n'
@@ -29,7 +30,7 @@ running = True
 
 
 def send(sock, msg):
-    msg = struct.pack('>I', len(msg)) + msg.encode()
+    msg = struct.pack('>I', len(msg)*2) + msg.encode('utf-16')
     sock.send(msg)
 
 
@@ -45,8 +46,13 @@ def stop():
 def exit_handler():
     global curr_socket
     if curr_socket:
-        send(curr_socket, 'quit' + user_login)
-    stop()
+        try:
+            send(curr_socket, 'quit' + user_login)
+        except socket.error:
+            pass
+    global running
+    running = False
+
 
 atexit.register(exit_handler)
 
@@ -63,6 +69,8 @@ class ChatClient(threading.Thread):
         self.recv_buffer = recv_buffer
         self.recv_msg_len = recv_msg_len
         self.login = ''
+        self.stickers_text = ''
+        self.sticker_list = {}
 
     def _socket_init(self):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -85,7 +93,7 @@ class ChatClient(threading.Thread):
         login = self.data_checker('Login (allowed: [' + u_allowed_chars + '], [exit] to leave): ', 1)
         passwd = self.data_checker('Password (at least 5 chars, allowed: [' + u_allowed_chars + '] [exit] to leave): ', 5)
 
-        hpasswd = hashlib.sha256(passwd.encode()).hexdigest()
+        hpasswd = hashlib.sha256(passwd.encode('utf-16')).hexdigest()
 
         header = "auth"
         global user_login
@@ -136,23 +144,23 @@ class ChatClient(threading.Thread):
                         elif command == 'm':
                             msg = self.open_editor()
                             if len(msg):
+                                sys.stdout.write(msg)
+                                sys.stdout.flush()
                                 msg = 'mesg' + msg
-                                msg = struct.pack('>I', len(msg)) + msg.encode()
-                                self.client_socket.send(msg)
+                                send(self.client_socket, msg)
 
                             sys.stdout.write(DEF_MESSAGE)
                             sys.stdout.flush()
-                        # try:
-                        #     data = self._receive(sock)
-                        #     if data:
-                        #         self._broadcast(sock, "\n" + '<' + str(sock.getpeername()) + '> ' + data)
-                        # except error:
-                        #     self._broadcast(sock, "\nClient (%s, %s) is offline\n" % (client_address[0],
-                        # client_address[1]))
-                        #     print("Client (%s, %s) is now offline\n" % (client_address[0], client_address[1]))
-                        #     sock.close()
-                        #     self.clients.remove(sock)
-                        #     continue
+                        elif command == 's':
+                            sticker = self.select_sticker()
+                            if len(sticker) != 0:
+                                if sticker == '-':
+                                    print('No such sticker. Try again\n')
+                                else:
+                                    send(self.client_socket, 'stck' + sticker)
+                                    print(self.sticker_list[sticker])
+                            print(DEF_MESSAGE)
+                            sys.stdout.flush()
         stop()
 
     def run(self):
@@ -181,27 +189,55 @@ class ChatClient(threading.Thread):
 
             return res_message
 
+    def select_sticker(self):
+        with open('sticker.info') as initial:
+            initial_message = initial.read()
+
+        with tempfile.NamedTemporaryFile(suffix=".tmp") as tf:
+            tf.write(initial_message.encode())
+            tf.flush()
+            subprocess.call([self.EDITOR, tf.name])
+
+            tf.seek(0)
+
+            sticker = ''
+            with open(tf.name) as tmp:
+                message = tmp.read()
+                parts = message.split(':', 2)
+
+                if len(parts) > 1:
+                    sticker = ":" + parts[1] + ":"
+                if sticker not in self.sticker_list.keys():
+                    return '-'
+
+            return sticker
+
     def receive(self, req_sock):
         res_data = None
 
         msg_len = req_sock.recv(self.recv_msg_len)
-        if len(msg_len) == 4:
+        if len(msg_len) == self.recv_msg_len:
             res_data = ''
             msg_len = struct.unpack('>I', msg_len)[0]
             tot_data_len = 0
 
-            command = req_sock.recv(4).decode()
+            req_sock.recv(2)
+            command = req_sock.recv(8).decode('utf-16')
             if command in COMMANDS:
-                data = self.receive_message(req_sock, msg_len - 4, tot_data_len + 4)
-                sys.stdout.write(data)
+                data = self.receive_message(req_sock, msg_len - 8, tot_data_len + 8)
                 if command == 'auer':
+                    sys.stdout.write(data)
                     self.authorize()
                     return
-                if command == 'mesg':
-                    return
-                else:
-                    sys.stdout.write(DEF_MESSAGE)
-                    sys.stdout.flush()
+                elif command == 'mesg':
+                    sys.stdout.write(data)
+                elif command == 'auok':
+                    self.parse_stickers(data)
+                    sys.stdout.write('Glad to see you. Have a nice day in chat =)\n')
+
+                sys.stdout.write(DEF_MESSAGE)
+                sys.stdout.flush()
+
             else:
                 sys.stdout.write('Something went wrong\n')
                 sys.stdout.write(DEF_MESSAGE)
@@ -219,9 +255,18 @@ class ChatClient(threading.Thread):
                 data = None
                 break
             else:
-                data += str(chunk.decode())
+                data += str(chunk.decode('utf-16'))
                 tot_data_len += len(chunk)
 
         return data
 
+    def parse_stickers(self, sticker_text):
+        self.stickers_text = sticker_text
+        sticker_list = {}
+        for item in self.stickers_text.split('-'):
+            tmp = item.split('sticker')
+            if len(tmp) == 2:
+                sticker_list[tmp[0]] = tmp[1]
+
+        self.sticker_list = sticker_list
 

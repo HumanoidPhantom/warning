@@ -13,7 +13,7 @@ HOST = "127.0.0.1"
 LOGFILE = None
 CLIENT_FILE = 'files/client.list'
 DEF_MESSAGE = '[l - list clients, q - quit]'
-LIST_MESSAGE = '[back] - return to server logs. [remove {username}] - disconnect user'
+LIST_MESSAGE = '[back] - return to server logs. [remove ip port] - disconnect user'
 
 COMMANDS = [
     'mesg',
@@ -22,7 +22,8 @@ COMMANDS = [
     'auth',
     'auok',
     'auer',
-    'erro'
+    'erro',
+    'stck'
 ]
 
 
@@ -40,7 +41,8 @@ class ChatServer(threading.Thread):
         self.recv_buffer = recv_buffer
         self.recv_msg_len = recv_msg_len
         self.show_income = True
-
+        self.stickers_text = ''
+        self.stickers = self.init_stickers()
 
     def _bind_socket(self):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -52,13 +54,12 @@ class ChatServer(threading.Thread):
             print('Something went wrong: ', msg)
             sys.exit()
 
-        print('Server has been started: ', self.server_socket.getsockname())
-        print(DEF_MESSAGE)
+        self.print_to_console('Server has been started: ', self.server_socket.getsockname())
         self.server_socket.listen(self.max_connections_number)
         self.clients.append(self.server_socket)
 
     def _send(self, sock, msg):
-        msg = struct.pack('>I', len(msg)) + msg.encode()
+        msg = struct.pack('>I', len(msg)*2) + msg.encode('utf-16')
         sock.send(msg)
 
     def _receive(self, sock):
@@ -66,18 +67,21 @@ class ChatServer(threading.Thread):
 
         msg_len = sock.recv(self.recv_msg_len)
 
-        if len(msg_len) == 4:
+        if len(msg_len) == self.recv_msg_len:
             msg_len = struct.unpack('>I', msg_len)[0]
             tot_data_len = 0
 
-            command = sock.recv(4).decode()
+            sock.recv(2)
+            command = sock.recv(8).decode('utf-16')
             if command in COMMANDS:
-                data = self.receive_message(sock, msg_len - 4, tot_data_len + 4)
+                data = self.receive_message(sock, msg_len - 8, tot_data_len + 8)
                 if command == 'auth':
                     res_data = self.auth_client(sock, data)
                 elif command == 'quit':
                     self.remove_client(sock)
                     res_data = ('User ' + data + ' left us\n', '', 'User ' + data + ' left us\n')
+                elif command == 'stck':
+                    res_data = self.sticker(data)
                 else:
                     res_data = ('mesg' + data, '', data)
             else:
@@ -94,10 +98,16 @@ class ChatServer(threading.Thread):
                 data = None
                 break
             else:
-                data += str(chunk.decode())
+                data += str(chunk.decode('utf-16'))
                 tot_data_len += len(chunk)
 
         return data
+
+    def sticker(self, sticker):
+        if sticker in self.stickers.keys():
+            return 'mesg' + sticker, '', sticker
+
+        return '', 'erro' + 'Sticker not found', ''
 
     def auth_client(self, sock, data):
         with open(CLIENT_FILE, 'a') as f:
@@ -127,20 +137,22 @@ class ChatServer(threading.Thread):
             if login in clients_list.keys():
                 if clients_list[login] == passwd:
                     self.clients_active.append(sock)
-                    self.clients_names[sock] = login
+                    addr = "('%s', %s)" % (sock.getpeername()[0], sock.getpeername()[1])
+                    self.clients_names[addr] = login
                     return 'mesg' + 'User ' + login + ' entered the chat room\n', \
-                           'auok' + 'Happy to see you here again. Have a good chat =)\n',\
-                           'User ' + login + ' entered the chat room',
+                           'auok' + self.stickers_text,\
+                           'User ' + login + ' entered the chat room\n',
                 else:
                     return '', 'auer' + 'Wrong password. Try again\n', ''
             else:
                 new_client = login + ' ' + passwd + '\n'
                 f.write(new_client)
                 self.clients_active.append(sock)
-                self.clients_names[sock] = login
+                addr = "('%s', %s)" % (sock.getpeername()[0], sock.getpeername()[1])
+                self.clients_names[addr] = login
                 return 'mesg' + 'User ' + login + ' entered the chat room\n', \
-                       'auok' + 'Welcome! Have a good chat =)\n', \
-                       'User ' + login + ' entered the chat room',
+                       'auok' + self.stickers_text, \
+                       'User ' + login + ' entered the chat room\n',
 
     def _broadcast(self, sock, msg):
         for connection in self.clients_active:
@@ -154,13 +166,22 @@ class ChatServer(threading.Thread):
                     self.remove_client(connection)
 
     def remove_client(self, connection):
+        print(connection in self.clients, connection in self.clients_active)
         if connection in self.clients:
             self.clients.remove(connection)
+
         if connection in self.clients_active:
             self.clients_active.remove(connection)
 
-        if connection in self.clients_names:
-            del self.clients_names[connection]
+        addr = "('%s', %s)" % (connection.getpeername()[0], connection.getpeername()[1])
+
+        if addr in self.clients_names:
+            del self.clients_names[addr]
+
+        try:
+            connection.close()
+        except socket.error:
+            pass
 
     def _run(self):
         while self.running:
@@ -177,10 +198,12 @@ class ChatServer(threading.Thread):
                             break
                         else:
                             self.clients.append(client_socket)
-                            self.clients_names[sock] = 'not logged in'
+                            addr = "('%s', %s)" % (client_socket.getpeername()[0], client_socket.getpeername()[1])
+                            self.clients_names[addr] = 'not logged in'
 
                             self.print_to_console("Client (%s, %s) has connected\n" % (client_address[0],
                                                                                        client_address[1]))
+
                     elif sock != sys.stdin:
                         try:
                             broadcast, usr_answ, serv = self._receive(sock)
@@ -215,25 +238,48 @@ class ChatServer(threading.Thread):
                                 self.show_income = False
                                 self.list_clients()
                         else:
-                            command = command[:-1]
-                            if command == 'back':
-                                self.show_income = True
-                                self.print_to_console(DEF_MESSAGE)
-                            elif command[:6] == 'remove ' and len(self.clients_names):
-                                name = command[6:]
+                            command = command.split()
+                            if len(command) != 0:
+                                if command[0] == 'back':
+                                    self.show_income = True
+                                    self.print_to_console(DEF_MESSAGE, False)
+                                elif command[0] == 'remove' and not len(command) < 3 and len(self.clients_names) != 0:
+                                    self.remove_client_command(command)
+                                else:
+                                    print('No such command. [back] - return to server logs. [remove ip port] - '
+                                          'disconnect user (if there is user)')
 
-                                for cl_sock, login in self.clients_names.items():
-                                    if name == login:
-                                        del self.clients_names[name]
-
-                                self.list_clients()
-
+                                    sys.stdout.flush()
                             else:
-                                print('No such command. [back] - return to server logs. [remove {username}] - '
+                                print('No such command. [back] - return to server logs. [remove ip port] - '
                                       'disconnect user (if there is user)')
 
                                 sys.stdout.flush()
         self.stop()
+
+    def remove_client_command(self, command):
+        rec_addr = "('%s', %s)" % (command[1], command[2])
+        for find_sock in self.clients:
+            if find_sock != self.server_socket and find_sock != sys.stdin:
+                peername = "('%s', %s)" % (find_sock.getpeername()[0], find_sock.getpeername()[1])
+                if rec_addr == peername:
+                    username = ''
+                    if rec_addr in self.clients_names.keys():
+                        username = self.clients_names[rec_addr] + ' ' \
+                            if self.clients_names[rec_addr] != 'not logged in' \
+                            else rec_addr + ' '
+
+                    resp_msg = 'User ' + username + 'was removed from chat'
+
+                    self._broadcast(find_sock, 'mesg' + resp_msg + '\n')
+                    self.remove_client(find_sock)
+
+                    self.show_income = True
+                    self.print_to_console(resp_msg)
+
+        if not self.show_income:
+            self.print_to_console("User was'n found. Try again", False)
+            self.list_clients()
 
     def run(self):
         self._bind_socket()
@@ -243,19 +289,33 @@ class ChatServer(threading.Thread):
         self.running = False
         self.server_socket.close()
 
-    def print_to_console(self, msg):
+    def print_to_console(self, msg, with_default = True):
         if self.show_income:
             print(msg)
+        if with_default:
+            print(DEF_MESSAGE)
+        sys.stdout.flush()
 
     def list_clients(self):
         if len(self.clients_names.items()) == 0:
             print('There are no clients now')
             print('[back] - return to server logs.')
         else:
-            for cl_sock, login in self.clients_names.items():
-                sock, addr = cl_sock
-                print(login + " (%s, %s)\n" % (addr[0], addr[1]))
 
-            print('[back] - return to server logs. [remove {username}] - disconnect user')
+            for addr, login in dict(self.clients_names).items():
+                print("%s %s" % (login, addr))
+
+            print('[back] - return to server logs. [remove ip port] - disconnect user')
 
         sys.stdout.flush()
+
+    def init_stickers(self):
+        with open('sticker.list', 'r') as f:
+            self.stickers_text = f.read()
+            sticker_list = {}
+            for item in self.stickers_text.split('-'):
+                tmp = item.split('sticker')
+                if len(tmp) == 2:
+                    sticker_list[tmp[0]] = tmp[1]
+
+        return sticker_list
