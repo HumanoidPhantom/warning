@@ -1,7 +1,6 @@
 import sys
 import server
 import client
-import socket
 
 # P2P version of the chat
 
