@@ -1,8 +1,9 @@
 import sys
 import server
 import client
+import socket
+from netifaces import interfaces, ifaddresses, AF_INET
 
-# P2P version of the chat
 
 TYPE = 'client'
 MAX_CONNECTIONS_NUMBER = 10
@@ -11,9 +12,25 @@ RECV_MSG_LEN = 4
 
 
 def get_additional_info(port_not_null=False):
+    addr_text = ''
+    for iface_name in interfaces():
+
+        tmp_address = ifaddresses(iface_name).setdefault(AF_INET, [{'addr': ''}])[0]['addr']
+
+        if tmp_address != '':
+            if tmp_address[:6] == '172.17':
+                addr_text += 'local IP: ' + tmp_address + '; '
+            elif tmp_address == '127.0.0.1':
+                pass
+            else:
+                addr_text += 'public IP: ' + tmp_address + '; '
+
+    if addr_text != '':
+        addr_text = 'your ' + addr_text
+
     while True:
 
-        host = input("Host/IP-address (print [back] to change type): ")
+        host = input("Host/IP-address (%sprint [back] to change type): " % addr_text)
         if host == 'back':
             return -1, -1
         elif len(host) == 0:
