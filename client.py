@@ -35,7 +35,6 @@ def send(sock, msg):
 
 
 def stop():
-    print('Disconnected from chat server')
     global running
     running = False
     if curr_socket:
@@ -52,6 +51,7 @@ def exit_handler():
             pass
     global running
     running = False
+    print('Disconnected from chat server')
 
 
 atexit.register(exit_handler)
@@ -144,7 +144,7 @@ class ChatClient(threading.Thread):
                         elif command == 'm':
                             msg = self.open_editor()
                             if len(msg):
-                                sys.stdout.write(msg)
+                                sys.stdout.write('Me: ' + msg)
                                 sys.stdout.flush()
                                 msg = 'mesg' + msg
                                 send(self.client_socket, msg)
@@ -158,7 +158,7 @@ class ChatClient(threading.Thread):
                                     print('No such sticker. Try again\n')
                                 else:
                                     send(self.client_socket, 'stck' + sticker)
-                                    print(self.sticker_list[sticker])
+                                    print('Me:\n' + self.sticker_list[sticker])
                             print(DEF_MESSAGE)
                             sys.stdout.flush()
         stop()

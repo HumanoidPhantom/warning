@@ -81,9 +81,14 @@ class ChatServer(threading.Thread):
                     self.remove_client(sock)
                     res_data = ('User ' + data + ' left us\n', '', 'User ' + data + ' left us\n')
                 elif command == 'stck':
-                    res_data = self.sticker(data)
+                    res_data = self.sticker(sock, data)
                 else:
-                    res_data = ('mesg' + data, '', data)
+                    user_addr = "('%s', %s)" % (sock.getpeername()[0], sock.getpeername()[1])
+                    username = self.clients_names[user_addr] + ': ' \
+                        if user_addr in self.clients_names and self.clients_names[user_addr] != 'not logged in' \
+                        else ''
+
+                    res_data = ('mesg' + username + data, '', username + data)
             else:
                 res_data = ('', 'erro' + 'Something went wrong. Try again\n', '')
 
@@ -103,9 +108,13 @@ class ChatServer(threading.Thread):
 
         return data
 
-    def sticker(self, sticker):
+    def sticker(self, sock, sticker):
         if sticker in self.stickers.keys():
-            return 'mesg' + sticker, '', sticker
+            user_addr = "('%s', %s)" % (sock.getpeername()[0], sock.getpeername()[1])
+            username = self.clients_names[user_addr] + ':' \
+                if user_addr in self.clients_names and self.clients_names[user_addr] != 'not logged in' \
+                else ''
+            return 'mesg' + username + '\n' + self.stickers[sticker], '', username + ' ' + sticker
 
         return '', 'erro' + 'Sticker not found', ''
 
