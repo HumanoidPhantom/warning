@@ -4,16 +4,19 @@ import struct
 import select
 import sys
 import os
+import atexit
 
 clients = []
 lastMessages = []
 
-PORT = 9090
-HOST = "127.0.0.1"
 LOGFILE = None
 CLIENT_FILE = 'files/client.list'
-DEF_MESSAGE = '[l - list clients, q - quit]'
 LIST_MESSAGE = '[back] - return to server logs. [remove ip port] - disconnect user'
+DEF_MESSAGE = '[m - send message, s - stickers, q - quit]\n'
+
+user_login = ''
+curr_socket = None
+running = True
 
 COMMANDS = [
     'mesg',
@@ -22,8 +25,36 @@ COMMANDS = [
     'auok',
     'auer',
     'erro',
-    'stck'
+    'stck',
 ]
+
+
+def send(sock, msg):
+    msg = struct.pack('>I', len(msg)*2) + msg.encode('utf-16')
+    sock.send(msg)
+
+
+def stop():
+    global running
+    running = False
+    if curr_socket:
+        curr_socket.close()
+    sys.exit()
+
+
+def exit_handler():
+    global curr_socket
+    if curr_socket:
+        try:
+            send(curr_socket, 'quit' + user_login)
+        except socket.error:
+            pass
+    global running
+    running = False
+    print('Disconnected from chat server')
+
+
+atexit.register(exit_handler)
 
 
 class ChatServer(threading.Thread):
@@ -53,7 +84,7 @@ class ChatServer(threading.Thread):
             print('Something went wrong: ', msg)
             sys.exit()
 
-        self.print_to_console('Server has been started: ', self.server_socket.getsockname())
+        self.print_to_console('You entered the chat: ', self.server_socket.getsockname())
         self.server_socket.listen(self.max_connections_number)
         self.clients.append(self.server_socket)
 
