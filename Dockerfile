@@ -7,6 +7,6 @@ ADD . /warning
 
 RUN pip install -r requirements.txt
 
-#EXPOSE 9090
+EXPOSE 9090
 
 CMD ["python", "warning.py"]

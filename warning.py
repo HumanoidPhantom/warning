@@ -3,7 +3,7 @@ import server
 import client
 import socket
 from netifaces import interfaces, ifaddresses, AF_INET
-
+import threading
 
 TYPE = 'client'
 MAX_CONNECTIONS_NUMBER = 10
@@ -31,13 +31,13 @@ def get_avail_ips():
     return addr_text
 
 
-def get_additional_info(port_not_null=False):
+def get_additional_info():
 
     addr_text = get_avail_ips()
 
     while True:
 
-        host = input("Host/IP-address (%sprint [exit] to change type): " % addr_text)
+        host = input("Host/IP-address (%sprint [exit] to leave): " % addr_text)
         if host == 'exit':
             print('Bye-bye')
             sys.exit()
@@ -53,7 +53,7 @@ def get_additional_info(port_not_null=False):
             elif len(port) == 0:
                 print('Too short answer. Try again')
                 continue
-            elif not port.isdigit() or int(port) < 0 or int(port) > 65535 or (port_not_null and port == 0):
+            elif not port.isdigit() or int(port) < 1 or int(port) > 65535:
                 print('\nWrong value')
                 continue
             else:
@@ -65,9 +65,65 @@ def get_additional_info(port_not_null=False):
         return host, int(port)
 
 
+# def get_connection_info():
+#
+#     while True:
+#
+#         host = input("Host/IP-address (print [exit] to change type): ")
+#         if host == 'exit':
+#             print('Bye-bye')
+#             sys.exit()
+#         elif len(host) == 0:
+#             print('Too short answer, try again')
+#             continue
+#
+#         while True:
+#             port = input("Port (print [back] to change host): ")
+#             if port == 'back':
+#                 host = -1
+#                 break
+#             elif len(port) == 0:
+#                 print('Too short answer. Try again')
+#                 continue
+#             elif not port.isdigit() or int(port) < 1 or int(port) > 65535:
+#                 print('\nWrong value')
+#                 continue
+#             else:
+#                 break
+#
+#         if host == -1:
+#             continue
+#
+#         return host, int(port)
+
+class WarningClient(threading.Thread):
+    def __init__(self, host, port, max_connections, recv_buffer, recv_msg_len):
+        threading.Thread.__init__(self)
+        self.host = host
+        self.port = port
+        self.clients = [sys.stdin]
+        self.clients_active = []
+        self.clients_names = {}
+        self.running = True
+        self.max_connections_number = max_connections
+        self.recv_buffer = recv_buffer
+        self.recv_msg_len = recv_msg_len
+        self.show_income = True
+        self.stickers_text = ''
+        self.stickers = self.init_stickers()
+
+
+
+
 def main():
 
-    host, port = get_additional_info()
+    while True:
+        host_own, port_own = get_additional_info()
+        # go_back, create, host, port = get_connection_info()
+
+        if go_back:
+            break
+
     chat_server = server.ChatServer(host, port, MAX_CONNECTIONS_NUMBER, RECV_BUFFER, RECV_MSG_LEN)
     chat_server.start()
 
