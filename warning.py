@@ -19,11 +19,11 @@ def get_avail_ips():
 
         if tmp_address != '':
             if tmp_address[:6] == '172.17':
-                addr_text += 'local IP: ' + tmp_address + '; '
+                addr_text += 'internal IP: ' + tmp_address + '; '
             elif tmp_address == '127.0.0.1':
                 pass
             else:
-                addr_text += 'public IP: ' + tmp_address + '; '
+                addr_text += 'external IP: ' + tmp_address + '; '
 
     if addr_text != '':
         addr_text = 'your ' + addr_text
