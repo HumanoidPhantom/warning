@@ -65,36 +65,37 @@ def get_additional_info():
         return host, int(port)
 
 
-# def get_connection_info():
-#
-#     while True:
-#
-#         host = input("Host/IP-address (print [exit] to change type): ")
-#         if host == 'exit':
-#             print('Bye-bye')
-#             sys.exit()
-#         elif len(host) == 0:
-#             print('Too short answer, try again')
-#             continue
-#
-#         while True:
-#             port = input("Port (print [back] to change host): ")
-#             if port == 'back':
-#                 host = -1
-#                 break
-#             elif len(port) == 0:
-#                 print('Too short answer. Try again')
-#                 continue
-#             elif not port.isdigit() or int(port) < 1 or int(port) > 65535:
-#                 print('\nWrong value')
-#                 continue
-#             else:
-#                 break
-#
-#         if host == -1:
-#             continue
-#
-#         return host, int(port)
+def get_connection_info():
+
+    while True:
+
+        host = input("Host/IP-address (print [exit] to change type): ")
+        if host == 'exit':
+            print('Bye-bye')
+            sys.exit()
+        elif len(host) == 0:
+            print('Too short answer, try again')
+            continue
+
+        while True:
+            port = input("Port (print [back] to change host): ")
+            if port == 'back':
+                host = -1
+                break
+            elif len(port) == 0:
+                print('Too short answer. Try again')
+                continue
+            elif not port.isdigit() or int(port) < 1 or int(port) > 65535:
+                print('\nWrong value')
+                continue
+            else:
+                break
+
+        if host == -1:
+            continue
+
+        return True, True, host, int(port)
+
 
 class WarningClient(threading.Thread):
     def __init__(self, host, port, max_connections, recv_buffer, recv_msg_len):
@@ -110,16 +111,13 @@ class WarningClient(threading.Thread):
         self.recv_msg_len = recv_msg_len
         self.show_income = True
         self.stickers_text = ''
-        self.stickers = self.init_stickers()
-
-
 
 
 def main():
 
     while True:
         host_own, port_own = get_additional_info()
-        # go_back, create, host, port = get_connection_info()
+        go_back, create, host, port = get_connection_info()
 
         if go_back:
             break
