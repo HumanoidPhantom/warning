@@ -36,7 +36,7 @@ def get_ip():
 
         tmp_address = ifaddresses(iface_name).setdefault(AF_INET, [{'addr': ''}])[0]['addr']
 
-        if tmp_address != '' and tmp_address[:4] == '188.':
+        if tmp_address != '' and tmp_address[:4] == '172.':
             addr = tmp_address
 
     return addr
@@ -283,9 +283,7 @@ class WarningClient(threading.Thread):
         else:
             global my_address
             my_address = '%s %s' % (my_socket.getsockname()[0], my_socket.getsockname()[1])
-            message = 'You almost entered the chat. Your internal address: %s\n' \
-                      '(external IP/hostname and port specified in docker command ' \
-                      'also could be used to connect to you)\n'\
+            message = 'You almost entered the chat. Your address: %s\n' \
                       % my_address
 
             print_to_console(message, False)
@@ -361,7 +359,6 @@ class WarningClient(threading.Thread):
                     if sock == my_socket:
                         try:
                             client_socket, client_address = my_socket.accept()
-                            print(client_socket, client_address)
                         except socket.error:
                             break
                         else:
