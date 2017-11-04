@@ -337,7 +337,7 @@ class WarningClient(threading.Thread):
 
             if login in clients_list.keys():
                 if clients_list[login] == passwd:
-                    return True, my_address + '+++' + self.user_list()
+                    return True, 'auok' + my_address + '+++' + self.user_list()
                 else:
                     return False, 'auer' + my_address + '+++' + 'Wrong password. Try again\n'
             else:
@@ -397,8 +397,7 @@ class WarningClient(threading.Thread):
                 elif command == 'mesg':
                     self.message_request(addr, data)
                 elif command == 'stck':
-                    print(data)
-                    self.message_request(addr, data)
+                    self.sticker_request(addr, data)
                 elif command == 'erro':
                     self.error_request(data)
                 else:
@@ -407,13 +406,12 @@ class WarningClient(threading.Thread):
     def input_handler(self, command):
         if command != '':
             if command == 'q':  # Exit from chat
-                broadcast('', 'quit' + my_address + '+++' + user_login)
                 stop()
             elif command == 'm':  # Send a message
                 msg = open_editor()
                 if len(msg):
                     print_to_console('Me: ' + msg + '\n')
-                    broadcast('', 'mesg' + my_address + '+++' + msg + '\n')
+                    broadcast('', 'meag' + my_address + '+++' + msg + '\n')
 
             elif command == 's':  # Send a sticker
                 sticker = self.select_sticker()
@@ -428,7 +426,6 @@ class WarningClient(threading.Thread):
 
     def auth_request(self, addr, data):
         res = self.check_in_file(data)
-        print(res)
         send(addr, res[1])
 
     def auok_request(self, addr, data):
@@ -487,8 +484,6 @@ class WarningClient(threading.Thread):
 
     def sticker_request(self, addr, sticker_name):
         if sticker_name and addr in clients_names:
-            print(sticker_name)
-            print(2, self.stickers, sticker_name in self.stickers.keys())
             login = clients_names[addr]
 
             msg = "\n" + self.stickers[sticker_name] if sticker_name in self.stickers.keys() else sticker_name
