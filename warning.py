@@ -6,7 +6,7 @@ from netifaces import interfaces, ifaddresses, AF_INET
 
 
 TYPE = 'client'
-MAX_CONNECTIONS_NUMBER = 10
+MAX_CONNECTIONS_NUMBER = 100
 RECV_BUFFER = 4048
 RECV_MSG_LEN = 4
 
