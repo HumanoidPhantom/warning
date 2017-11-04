@@ -283,7 +283,7 @@ class WarningClient(threading.Thread):
         else:
             global my_address
             my_address = '%s %s' % (my_socket.getsockname()[0], my_socket.getsockname()[1])
-            message = 'You entered the chat. Your internal address: %s\n' \
+            message = 'You almost entered the chat. Your internal address: %s\n' \
                       '(external IP/hostname and port specified in docker command ' \
                       'also could be used to connect to you)\n'\
                       % my_address
