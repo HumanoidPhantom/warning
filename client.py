@@ -29,34 +29,6 @@ curr_socket = None
 running = True
 
 
-def send(sock, msg):
-    msg = struct.pack('>I', len(msg)*2) + msg.encode('utf-16')
-    sock.send(msg)
-
-
-def stop():
-    global running
-    running = False
-    if curr_socket:
-        curr_socket.close()
-    sys.exit()
-
-
-def exit_handler():
-    global curr_socket
-    if curr_socket:
-        try:
-            send(curr_socket, 'quit' + user_login)
-        except socket.error:
-            pass
-    global running
-    running = False
-    print('Disconnected from chat server')
-
-
-atexit.register(exit_handler)
-
-
 class ChatClient(threading.Thread):
     EDITOR = os.environ.get('EDITOR') if os.environ.get('EDITOR') else 'vim'
 
@@ -137,29 +109,7 @@ class ChatClient(threading.Thread):
 
                         sys.stdout.flush()
                         command = command[-2:-1]
-                        if command == 'q':
-                            send(self.client_socket, 'quit'+user_login)
-                            stop()
-                        elif command == 'm':
-                            msg = self.open_editor()
-                            if len(msg):
-                                sys.stdout.write('Me: ' + msg)
-                                sys.stdout.flush()
-                                msg = 'mesg' + msg
-                                send(self.client_socket, msg)
 
-                            sys.stdout.write(DEF_MESSAGE)
-                            sys.stdout.flush()
-                        elif command == 's':
-                            sticker = self.select_sticker()
-                            if len(sticker) != 0:
-                                if sticker == '-':
-                                    print('No such sticker. Try again\n')
-                                else:
-                                    send(self.client_socket, 'stck' + sticker)
-                                    print('Me:\n' + self.sticker_list[sticker])
-                            print(DEF_MESSAGE)
-                            sys.stdout.flush()
         stop()
 
     def run(self):
@@ -167,49 +117,7 @@ class ChatClient(threading.Thread):
         self.authorize()
         self._run()
 
-    def open_editor(self):
-        with open('initial.txt') as initial:
-            initial_message = initial.read()
 
-        with tempfile.NamedTemporaryFile(suffix=".tmp") as tf:
-            tf.write(initial_message.encode())
-            tf.flush()
-            subprocess.call([self.EDITOR, tf.name])
-
-            tf.seek(0)
-
-            with open(tf.name) as tmp:
-                message = tmp.read().splitlines()
-
-            res_message = ''
-            for line in message:
-                if not (len(line) > 3 and line[:3] == '###'):
-                    res_message += ('\n' if len(res_message) else '') + line
-
-            return res_message
-
-    def select_sticker(self):
-        with open('sticker.info') as initial:
-            initial_message = initial.read()
-
-        with tempfile.NamedTemporaryFile(suffix=".tmp") as tf:
-            tf.write(initial_message.encode())
-            tf.flush()
-            subprocess.call([self.EDITOR, tf.name])
-
-            tf.seek(0)
-
-            sticker = ''
-            with open(tf.name) as tmp:
-                message = tmp.read()
-                parts = message.split(':', 2)
-
-                if len(parts) > 1:
-                    sticker = ":" + parts[1] + ":"
-                if sticker not in self.sticker_list.keys():
-                    return '-'
-
-            return sticker
 
     def receive(self, req_sock):
         res_data = None

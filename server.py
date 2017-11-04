@@ -30,114 +30,11 @@ COMMANDS = [
 ]
 
 
-def send(sock, msg):
-    msg = struct.pack('>I', len(msg)*2) + msg.encode('utf-16')
-    sock.send(msg)
-
-
-def stop():
-    global running
-    running = False
-    if curr_socket:
-        curr_socket.close()
-    sys.exit()
-
-
-def exit_handler():
-    global curr_socket
-    if curr_socket:
-        try:
-            send(curr_socket, 'quit' + user_login)
-        except socket.error:
-            pass
-    global running
-    running = False
-    print('Disconnected from chat server')
-
-
-atexit.register(exit_handler)
-
-
 class ChatServer(threading.Thread):
 
-    def __init__(self, host, port, max_connections, recv_buffer, recv_msg_len):
-        threading.Thread.__init__(self)
-        self.host = host
-        self.port = port
-        self.clients = [sys.stdin]
-        self.clients_active = []
-        self.clients_names = {}
-        self.running = True
-        self.max_connections_number = max_connections
-        self.recv_buffer = recv_buffer
-        self.recv_msg_len = recv_msg_len
-        self.show_income = True
-        self.stickers_text = ''
-        self.stickers = self.init_stickers()
 
-    def _bind_socket(self):
-        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        try:
-            self.server_socket.bind((self.host, self.port))
-        except socket.error as msg:
-            print('Something went wrong: ', msg)
-            sys.exit()
 
-        self.print_to_console('You entered the chat: ', self.server_socket.getsockname())
-        self.server_socket.listen(self.max_connections_number)
-        self.clients.append(self.server_socket)
-
-    def _send(self, sock, msg):
-        msg = struct.pack('>I', len(msg)*2) + msg.encode('utf-16')
-        sock.send(msg)
-
-    def _receive(self, sock):
-        res_data = ('', '', '')
-
-        msg_len = sock.recv(self.recv_msg_len)
-
-        if len(msg_len) == self.recv_msg_len:
-            msg_len = struct.unpack('>I', msg_len)[0]
-            tot_data_len = 0
-
-            sock.recv(2)
-            command = sock.recv(8).decode('utf-16')
-            if command in COMMANDS:
-                data = self.receive_message(sock, msg_len - 8, tot_data_len + 8)
-                if command == 'auth':
-                    res_data = self.auth_client(sock, data)
-                elif command == 'quit':
-                    self.remove_client(sock)
-                    res_data = ('mesg' + 'User ' + data + ' left us\n', '', 'User ' + data + ' left us\n')
-                elif command == 'stck':
-                    res_data = self.sticker(sock, data)
-                else:
-                    user_addr = "('%s', %s)" % (sock.getpeername()[0], sock.getpeername()[1])
-                    username = self.clients_names[user_addr] + ': ' \
-                        if user_addr in self.clients_names and self.clients_names[user_addr] != 'not logged in' \
-                        else ''
-
-                    res_data = ('mesg' + username + data, '', username + data)
-            else:
-                res_data = ('', 'erro' + 'Something went wrong. Try again\n', '')
-
-        return res_data
-
-    def receive_message(self, sock, msg_len, tot_data_len):
-        data = ''
-
-        while tot_data_len < msg_len:
-            chunk = sock.recv(self.recv_buffer)
-            if not chunk:
-                data = None
-                break
-            else:
-                data += str(chunk.decode('utf-16'))
-                tot_data_len += len(chunk)
-
-        return data
 
     def sticker(self, sock, sticker):
         if sticker in self.stickers.keys():
@@ -320,14 +217,6 @@ class ChatServer(threading.Thread):
             self.print_to_console("User was'n found. Try again", False)
             self.list_clients()
 
-    def run(self):
-        self._bind_socket()
-        self._run()
-
-    def stop(self):
-        self.running = False
-        self.server_socket.close()
-
     def print_to_console(self, msg, with_default = True):
         if self.show_income:
             print(msg)
@@ -347,14 +236,3 @@ class ChatServer(threading.Thread):
             print('[back] - return to server logs. [remove ip port] - disconnect user')
 
         sys.stdout.flush()
-
-    def init_stickers(self):
-        with open('sticker.list', 'r') as f:
-            self.stickers_text = f.read()
-            sticker_list = {}
-            for item in self.stickers_text.split('-'):
-                tmp = item.split('sticker')
-                if len(tmp) == 2:
-                    sticker_list[tmp[0]] = tmp[1]
-
-        return sticker_list
