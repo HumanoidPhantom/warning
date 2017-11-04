@@ -411,7 +411,7 @@ class WarningClient(threading.Thread):
                 msg = open_editor()
                 if len(msg):
                     print_to_console('Me: ' + msg + '\n')
-                    broadcast('', 'meag' + my_address + '+++' + msg + '\n')
+                    broadcast('', 'mesg' + my_address + '+++' + msg + '\n')
 
             elif command == 's':  # Send a sticker
                 sticker = self.select_sticker()
@@ -455,7 +455,7 @@ class WarningClient(threading.Thread):
 
     def new_user_request(self, addr, data):
         if data != '':
-            info = data.split(' ')
+            info = data.split()
             if len(info) == 2:
                 login = info[0]
                 passwd = info[1]
@@ -463,7 +463,7 @@ class WarningClient(threading.Thread):
                 add_client(addr, login, passwd)
 
                 if login == user_login:
-                    msg = 'You have entered the chat from once more\n'
+                    msg = 'You have entered the chat once more from (%s)\n' % addr
                 else:
                     msg = 'User ' + login + ' entered the chat room\n'
                 print_to_console(msg, True)
