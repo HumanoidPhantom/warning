@@ -1,6 +1,4 @@
 
-
-
 ### Lines, starting with [###] won't be sent
-### Type :q! to exit
-### Type :x to send message
+### Type [Esc]:q! to exit
+### Type [Esc]:x to send message
