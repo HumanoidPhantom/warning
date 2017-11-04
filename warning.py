@@ -36,7 +36,7 @@ def get_ip():
 
         tmp_address = ifaddresses(iface_name).setdefault(AF_INET, [{'addr': ''}])[0]['addr']
 
-        if tmp_address != '' and tmp_address[:4] == '172.':
+        if tmp_address != '' and tmp_address[:4] == '188.':
             addr = tmp_address
 
     return addr
