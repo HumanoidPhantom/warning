@@ -360,7 +360,8 @@ class WarningClient(threading.Thread):
                 for sock in ready_to_read:
                     if sock == my_socket:
                         try:
-                            client_socket = my_socket.accept()[0]
+                            client_socket, client_address = my_socket.accept()
+                            print(client_socket, client_address)
                         except socket.error:
                             break
                         else:
