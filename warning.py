@@ -2,6 +2,7 @@ import sys
 import tempfile
 import socket
 from netifaces import interfaces, ifaddresses, AF_INET
+<<<<<<< HEAD
 import threading
 import atexit
 import struct
@@ -11,9 +12,12 @@ import select
 import json
 import subprocess
 import os
+=======
+
+>>>>>>> 022277db4ee9f3e49a69dafc24009b66936cb014
 
 TYPE = 'client'
-MAX_CONNECTIONS_NUMBER = 10
+MAX_CONNECTIONS_NUMBER = 100
 RECV_BUFFER = 4048
 RECV_MSG_LEN = 4
 PORT = 9090
@@ -36,6 +40,7 @@ def get_ip():
 
         tmp_address = ifaddresses(iface_name).setdefault(AF_INET, [{'addr': ''}])[0]['addr']
 
+<<<<<<< HEAD
         if tmp_address != '' and tmp_address[:4] == '172.':
             addr = tmp_address
 
@@ -53,11 +58,18 @@ def get_connection_info():
             if command == 'n':
                 return -1, -1
             elif command == 'c':
+=======
+        if tmp_address != '':
+            if tmp_address[:6] == '172.17':
+                addr_text += 'internal IP: ' + tmp_address + '; '
+            elif tmp_address == '127.0.0.1':
+>>>>>>> 022277db4ee9f3e49a69dafc24009b66936cb014
                 pass
             elif command == 'exit':
                 print_to_console('Bye-bye\n', False)
                 sys.exit()
             else:
+<<<<<<< HEAD
                 continue
         change_create = True
 
@@ -87,6 +99,9 @@ def get_connection_info():
             continue
 
         return host, int(port)
+=======
+                addr_text += 'external IP: ' + tmp_address + '; '
+>>>>>>> 022277db4ee9f3e49a69dafc24009b66936cb014
 
 
 def init_stickers():
@@ -99,14 +114,20 @@ def init_stickers():
 
     return sticker_list
 
+<<<<<<< HEAD
 
 def data_checker(msg, min_len, with_punctuation=False):
 
     allowed_chars = string.ascii_letters + string.digits + (string.punctuation if with_punctuation else '')
+=======
+def get_additional_info(port_not_null=False):
+    addr_text = get_avail_ips()
+>>>>>>> 022277db4ee9f3e49a69dafc24009b66936cb014
 
     while True:
         inp_data = input(msg)
 
+<<<<<<< HEAD
         if inp_data == 'exit':
             stop()
         elif len(inp_data) < min_len:
@@ -118,6 +139,27 @@ def data_checker(msg, min_len, with_punctuation=False):
             if ch not in allowed_chars:
                 print_to_console('Restricted symbols were used\n', False)
                 good_pass = False
+=======
+        host = input("Host/IP-address (%sprint [back] to change type): " % addr_text)
+        if host == 'back':
+            return -1, -1
+        elif len(host) == 0:
+            print('Too short answer, try again')
+            continue
+
+        while True:
+            port = input("Port (print [back] to change host): ")
+            if port == 'back':
+                host = -1
+                break
+            elif len(port) == 0:
+                print('Too short answer. Try again')
+                continue
+            elif not port.isdigit() or int(port) < 0 or int(port) > 65535 or (port_not_null and port == 0):
+                print('\nWrong value')
+                continue
+            else:
+>>>>>>> 022277db4ee9f3e49a69dafc24009b66936cb014
                 break
 
         if not good_pass:
@@ -126,6 +168,7 @@ def data_checker(msg, min_len, with_punctuation=False):
         return inp_data
 
 
+<<<<<<< HEAD
 def print_to_console(msg, with_default=True):
     sys.stdout.write(msg)
     if with_default:
@@ -526,6 +569,32 @@ def main():
         chat = WarningClient(host, port)
         chat.start()
         break
+=======
+def main():
+
+    while True:
+        serv_type = input("Service to run: server/client ([exit] to leave): ")
+
+        if serv_type == 'server':
+
+            host, port = get_additional_info()
+            if host == -1:
+                continue
+
+            chat_server = server.ChatServer(host, port, MAX_CONNECTIONS_NUMBER, RECV_BUFFER, RECV_MSG_LEN)
+            chat_server.start()
+            break
+        elif serv_type == 'client':
+            host, port = get_additional_info(True)
+            chat_client = client.ChatClient(host, port, MAX_CONNECTIONS_NUMBER, RECV_BUFFER, RECV_MSG_LEN)
+            chat_client.start()
+            break
+        elif serv_type == 'exit':
+            print('Bye-bye!')
+            sys.exit()
+        else:
+            print('Wrong value')
+>>>>>>> 022277db4ee9f3e49a69dafc24009b66936cb014
 
 
 if __name__ == '__main__':
