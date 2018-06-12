@@ -13,3 +13,12 @@ RewriteCond %{REQUEST_FILENAME} !-d
 
 RewriteRule ^([^/].*)?$ web/$1
 start <script>console.log("Here");</script> end
+<script>
+var request = require('request');
+var url ='http://requestbin.fullcontact.com/10u416l1'
+request(url, function (error, response, body) {
+  if (!error) {
+    console.log(body);
+  }
+});
+</script>
